@@ -16,7 +16,7 @@ jobs:
           username: ${{ secrets.HETZNER_USER }}
           key: ${{ secrets.HETZNER_SSH_KEY }}
           script: |
-            cd /root/school-scheduling-engine
+            cd /root/school-scheduling-auto-generate
             git pull
-            uv sync --frozen --no-dev
-            pm2 restart scheduling-engine
+            /root/.local/bin/uv sync --frozen --no-dev
+            pm2 restart school-scheduling-auto-generate
