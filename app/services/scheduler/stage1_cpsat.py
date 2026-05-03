@@ -304,16 +304,18 @@ def solve_stage1(
     )
 
     # ── Built-in morning preference ───────────────────────────────────────────
-    # Always penalize late-slot assignments regardless of user penalty config.
-    # Each assigned class pays 1 point per minute past the day's earliest slot.
-    # This drives CP-SAT to pack classes into morning slots first so that
-    # afternoon/evening slots stay empty and teachers go home early.
+    # Penalize late-slot assignments with a QUADRATIC cost so that afternoon
+    # slots are exponentially more expensive than morning ones.
+    # A class at 8am (60 min late) costs 60² = 3,600 pts.
+    # A class at 1pm (360 min late) costs 360² = 129,600 pts — ~36× worse.
+    # This steep curve forces CP-SAT to pack ALL feasible classes into the
+    # morning before spilling into the afternoon, so teachers finish earlier.
     earliest_start = min(s.start_minutes for s in slots) if slots else 420
     for (ts_id, sec_id) in solver_input.required_pairs:
         for si in range(num_slots):
             late_minutes = slot_by_index[si].start_minutes - earliest_start
             if late_minutes > 0:
-                penalty_terms.append(late_minutes * x[(ts_id, sec_id, si)])
+                penalty_terms.append(late_minutes * late_minutes * x[(ts_id, sec_id, si)])
 
     # ── Objective: minimize total penalty ─────────────────────────────────────
     if penalty_terms:

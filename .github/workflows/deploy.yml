@@ -1,0 +1,62 @@
+name: Production Deployment
+
+on:
+  push:
+    branches: [master]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      contents: read
+      packages: write   # allows pushing to ghcr.io
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}:${{ github.sha }}
+
+      - name: Deploy on Hetzner via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            # ghcr.io image names must be lowercase
+            IMAGE=$(echo "${{ env.REGISTRY }}/${{ github.repository }}:latest" | tr '[:upper:]' '[:lower:]')
+
+            # Pull the new image first so the downtime window is minimal
+            docker pull "$IMAGE"
+
+            # Swap the running container
+            docker stop scheduling-engine 2>/dev/null || true
+            docker rm   scheduling-engine 2>/dev/null || true
+            docker run -d \
+              --name scheduling-engine \
+              --restart unless-stopped \
+              -p 5000:5000 \
+              --env-file /opt/scheduling-engine/.env \
+              "$IMAGE"
+
+            # Remove dangling images to keep the disk clean
+            docker image prune -f
