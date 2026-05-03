@@ -1,0 +1,35 @@
+[project]
+name = "school-scheduling-engine"
+version = "0.1.0"
+description = "Auto-generates fair, conflict-free class group assignments for a school"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    # Data validation and settings
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    # Async HTTP client — calls the NestJS backend API
+    "httpx>=0.28",
+    # Google OR-Tools — constraint solver used in Stage 1 (CP-SAT)
+    "ortools>=9.11",
+    # Structured logging (outputs JSON-friendly logs)
+    "structlog>=24.4",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-mock>=3.14",
+    # respx — intercepts httpx requests at the transport level for testing
+    "respx>=0.21",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100

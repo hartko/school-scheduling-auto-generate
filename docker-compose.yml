@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Point to the NestJS backend running on the host machine
+      - NESTJS_BASE_URL=http://host.docker.internal:4000
+      - LOG_LEVEL=INFO
+    env_file:
+      - .env
+    # Restart automatically on crash (e.g. if the solver hits an OOM)
+    restart: unless-stopped
